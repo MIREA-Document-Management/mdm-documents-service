@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.4.xsd">
+
+    <preConditions>
+        <dbms type="postgresql"/>
+    </preConditions>
+
+    <changeSet id="init-extensions" author="Melekhin Mikhail">
+        <comment>Подключение необходимых расширений</comment>
+        <sql><![CDATA[
+            CREATE EXTENSION IF NOT EXISTS "uuid-ossp" SCHEMA public;
+        ]]></sql>
+    </changeSet>
+
+    <changeSet id="create-mdm-documents-table" author="Melekhin Mikhail">
+        <comment>Создание таблицы mdm_documents</comment>
+        <sql><![CDATA[
+            CREATE TABLE IF NOT EXISTS mdm_documents
+            (
+                    id                UUID NOT NULL,
+                    version_id        UUID NOT NULL PRIMARY KEY,
+                    version_number    INTEGER  NOT NULL DEFAULT 1,
+                    name              TEXT     NOT NULL,
+                    class_name        TEXT     NOT NULL,
+                    description       TEXT,
+                    record_version    INTEGER  NOT NULL DEFAULT 0,
+                    access_level      TEXT     NOT NULL DEFAULT 'PRIVATE',
+                    file_id           UUID,
+                    created_by        TEXT     NOT NULL,
+                    creation_date     TIMESTAMP NOT NULL,
+                    modified_by       TEXT     NOT NULL,
+                    modification_date TIMESTAMP NOT NULL,
+                    data              JSONB
+            );
+        ]]></sql>
+        <rollback>DROP TABLE mdm_documents;</rollback>
+    </changeSet>
+
+    <changeSet id="create-mdm-document-classes-table" author="Melekhin Mikhail">
+        <comment>Создание таблицы mdm_document_classes</comment>
+        <sql><![CDATA[
+            CREATE TABLE IF NOT EXISTS mdm_document_classes
+            (
+                id                      UUID NOT NULL DEFAULT public.uuid_generate_v4() PRIMARY KEY,
+                className               TEXT NOT NULL UNIQUE,
+                description             TEXT,
+                created_by              TEXT NOT NULL,
+                creation_date           timestamp NOT NULL,
+                modified_by             TEXT NOT NULL,
+                modification_date       timestamp NOT NULL
+            );
+        ]]></sql>
+        <rollback>DROP TABLE mdm_document_classes;</rollback>
+    </changeSet>
+
+    <changeSet id="create-mdm-document-properties-table" author="Melekhin Mikhail">
+        <comment>Создание таблицы mdm_document_properties</comment>
+        <sql><![CDATA[
+            CREATE TABLE IF NOT EXISTS mdm_document_properties
+            (
+                id                      UUID NOT NULL DEFAULT public.uuid_generate_v4() PRIMARY KEY,
+                class_id                UUID NOT NULL REFERENCES mdm_document_classes(id),
+                code                    TEXT NOT NULL,
+                name                    TEXT NOT NULL,
+                description             TEXT,
+                type                    TEXT NOT NULL,
+                required                BOOLEAN NOT NULL
+            );
+        ]]></sql>
+        <rollback>DROP TABLE mdm_document_properties;</rollback>
+    </changeSet>
+
+    <changeSet id="create-mdm-document-user-signs-table" author="Melekhin Mikhail">
+        <comment>Создание таблицы mdm_document_user_signs</comment>
+        <sql><![CDATA[
+            CREATE TABLE IF NOT EXISTS mdm_document_user_signs
+            (
+                id                      UUID NOT NULL DEFAULT public.uuid_generate_v4() PRIMARY KEY,
+                document_id             UUID NOT NULL REFERENCES mdm_documents(version_id),
+                user_login              TEXT NOT NULL,
+                signed                  BOOLEAN NOT NULL DEFAULT false,
+                created_by              TEXT NOT NULL,
+                creation_date           timestamp NOT NULL,
+                modified_by             TEXT NOT NULL,
+                modification_date       timestamp NOT NULL
+            );
+        ]]></sql>
+        <rollback>DROP TABLE mdm_document_user_signs;</rollback>
+    </changeSet>
+
+<!--    <changeSet id="create-mdm-document-user-signs-table" author="Melekhin Mikhail">-->
+<!--        <comment>Создание таблицы mdm_audit_events</comment>-->
+<!--        <sql><![CDATA[-->
+<!--            CREATE TABLE IF NOT EXISTS mdm_audit_events-->
+<!--            (-->
+<!--                id                      UUID NOT NULL PRIMARY KEY,-->
+<!--                event_type              TEXT NOT NULL,-->
+<!--                date_time               timestamp NOT NULL,-->
+<!--                user_login              TEXT NOT NULL,-->
+<!--                service_name            TEXT NOT NULL-->
+<!--                object                  JSONB-->
+<!--            );-->
+<!--        ]]></sql>-->
+<!--        <rollback>DROP TABLE mdm_audit_events;</rollback>-->
+<!--    </changeSet>-->
+
+</databaseChangeLog>

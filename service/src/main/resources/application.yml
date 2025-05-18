@@ -1,0 +1,96 @@
+yml-vars:
+  database:
+    url: ${DATASOURCE_URL:postgresql://127.0.0.1:5432/mdm_documents_db}
+    username: postgres
+    password: 123456
+
+server:
+  port: 8091
+  error:
+    include-message: always
+    include-stacktrace: never
+
+#logging:
+#  level:
+#    root: DEBUG
+
+spring:
+  main:
+    allow-bean-definition-overriding: true
+  application:
+    name: mdm-documents-service
+  liquibase:
+    enabled: true
+    change-log: classpath:db/db.changelog-master.xml
+    contexts: default
+    url: jdbc:${yml-vars.database.url}
+    user: ${yml-vars.database.username}
+    password: ${yml-vars.database.password}
+  r2dbc:
+    url: r2dbc:${yml-vars.database.url}
+    username: ${yml-vars.database.username}
+    password: ${yml-vars.database.password}
+  data:
+    r2dbc:
+      repositories:
+        enabled: true
+  kafka:
+    bootstrap-servers: ${KAFKA_URL_LIST:localhost:9092}
+    producer:
+      acks: ${KAFKA_PRODUCER_ACKS:1}
+      retries: ${KAFKA_PRODUCER_RETRIES:2}
+    consumer:
+      auto-offset-reset: ${KAFKA_CONSUMER_AUTO_OFFSET_RESET:earliest}
+      group-id: ${ENVIRONMENT_PREFIX:local}-${spring.application.name}
+      properties:
+        spring:
+          json:
+            trusted: # Данное свойство разрешает десереализацию всех классов.
+              packages: '*'
+  security:
+    oauth2:
+      client:
+        registration:
+          backend:
+            authorizationGrantType: client_credentials
+            clientId: mdm_client
+            clientSecret: oETh9BqhjoJAfld2jFGk2acsjtTcve4E
+        provider:
+          backend:
+            tokenUri: http://localhost:8080/realms/MDM/protocol/openid-connect/token
+
+mdm:
+  application:
+    name: ${spring.application.name}
+    description: Сервис для управления файлами
+    version: local
+    route:
+      uri: http://localhost:${server.port}
+      predicates:
+        - Path=/mdm-documents-service/**
+      filters:
+        - StripPrefix=1
+    controllers:
+      - ru.mdm.documents.rest
+  registry:
+    service:
+      url: http://localhost:8888
+  keycloak:
+    url: http://localhost:8080
+    token-uri: ${mdm.keycloak.url}/realms/MDM/protocol/openid-connect/token
+    jwk-set-uri: ${mdm.keycloak.url}/realms/MDM/protocol/openid-connect/certs
+    client-secret: OyIAASoDGnbuDrwzVGdyhqsFiq0VLPBY
+  acl:
+    starter:
+      db:
+        host: 127.0.0.1
+        port: 5432
+        name: mdm_documents_db
+        schema: public
+        user: postgres
+        password: 123456
+  signatures:
+    service:
+      topic: local-mdm-signatures-service-topic
+#  authentication:
+#    public-uris: /**
